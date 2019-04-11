@@ -1,0 +1,145 @@
+package com.example.autotethering;
+
+import android.content.ComponentName;
+import android.content.Intent;
+import android.os.Bundle;
+import android.provider.Settings;
+import android.support.v7.app.AppCompatActivity;
+import android.view.View;
+
+public class MainActivity extends AppCompatActivity {
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        //Works
+//        startActivityForResult(new Intent(Settings.ACTION_AIRPLANE_MODE_SETTINGS), 0);
+        final Intent intent = new Intent(Intent.ACTION_MAIN, null);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        final ComponentName cn = new ComponentName("com.android.settings", "com.android.settings.TetherSettings");
+        intent.setComponent(cn);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity( intent);
+
+
+//        startActivityForResult(new Intent(Settings.ACTION_AIRPLANE_MODE_SETTINGS), 0);
+
+
+    }
+
+    public void switchOnTethering(View view) {
+
+        Intent dialogIntent = new Intent(Settings.ACTION_WIRELESS_SETTINGS);
+        dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(dialogIntent);
+    }
+
+}
+
+
+Broad cast receiver
+
+package com.example.autotethering.broadcast_receiver;
+
+import android.annotation.TargetApi;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.os.Build;
+import android.provider.Settings;
+import android.widget.Toast;
+
+import com.example.autotethering.MainActivity;
+
+public class UsbBroadcastReceiver extends BroadcastReceiver {
+
+    public static final String MyPREFERENCES = "MyPrefs";
+
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        //launchSettings when connected to both wifi and usb
+
+        boolean shouldLaunchSettings = shouldLaunchSettings();
+        boolean wifiIsConnected = wifiIsConnected();
+
+        if (usbIsConnected(context) && shouldLaunchSettings && wifiIsConnected) {
+            if (readSharedPref(context) == 0) {
+                launchSettings(context);
+                //Toast.makeText(context, "usb is connected", Toast.LENGTH_SHORT).show();
+            }
+            writeSharedPref(context, 1);
+
+
+        }
+
+        if (!usbIsConnected(context) && shouldLaunchSettings && wifiIsConnected) {
+            if (readSharedPref(context) == 1) {
+                Toast.makeText(context, "dis-connected", Toast.LENGTH_SHORT).show();
+            }
+            writeSharedPref(context, 0);
+
+        }
+
+    }
+
+
+    private int readSharedPref(Context c) {
+        SharedPreferences sharedpreferences = c.getSharedPreferences(MyPREFERENCES, Context.MODE_PRIVATE);
+        int result = sharedpreferences.getInt("key", 0);
+        return result;
+
+    }
+
+    private void writeSharedPref(Context c, int x) {
+        SharedPreferences sharedpreferences = c.getSharedPreferences(MyPREFERENCES, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedpreferences.edit();
+        editor.putInt("key", x);
+        editor.commit();
+    }
+
+    public boolean usbIsConnected(Context c) {
+        Intent intent = c.registerReceiver(null, new IntentFilter("android.hardware.usb.action.USB_STATE"));
+        return intent.getExtras().getBoolean("connected");
+    }
+
+    private void launchSettings(Context context) {
+        boolean throwsException = false;
+        //--
+        try {
+            final Intent intent = new Intent(Intent.ACTION_MAIN, null);
+            intent.addCategory(Intent.CATEGORY_LAUNCHER);
+            final ComponentName cn = new ComponentName("com.android.settings", "com.android.settings.TetherSettings");
+            intent.setComponent(cn);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity( intent);
+        }catch (Exception e) {
+            e.printStackTrace();
+            throwsException = true;
+        }
+
+
+        //--
+        if (throwsException){
+            Intent dialogIntent = new Intent(Settings.ACTION_WIRELESS_SETTINGS);
+            dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(dialogIntent);
+        }
+    }
+
+    private boolean wifiIsConnected() {
+        // checks if usb is connected to pc
+        return true;
+    }
+
+    private boolean shouldLaunchSettings() {
+        // read from shared pref
+        return true;
+    }
+
+
+}
