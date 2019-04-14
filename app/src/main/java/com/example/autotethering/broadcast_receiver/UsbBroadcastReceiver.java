@@ -15,7 +15,7 @@ public class UsbBroadcastReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
 
-        if (usbIsConnected(context) && wifiIsConnected(context)) {
+        if (usbIsConnected(context) || wifiIsConnected(context)) {
             launchSettings(context);
         }
 
